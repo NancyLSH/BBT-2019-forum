@@ -22,6 +22,7 @@ export default new VueRouter({
             component:login
         },
         {
+            name:'main',
             path:'/main',
             component:main
         },
@@ -34,6 +35,7 @@ export default new VueRouter({
             component:settings
         },
         {
+            name:"forum",
             path:'/forum',
             component:forum
         }

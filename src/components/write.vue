@@ -19,14 +19,14 @@
           show-word-limit
         ></el-input>
       </el-form-item>
-      <el-form-item label="标签" prop="tag">
+      <el-form-item label="关键字" prop="tag">
         <el-radio-group v-model="forum.tag">
-          <el-radio label="政治"></el-radio>
-          <el-radio label="军事"></el-radio>
-          <el-radio label="教育"></el-radio>
-          <el-radio label="音乐"></el-radio>
-          <el-radio label="娱乐"></el-radio>
-          <el-radio label="生活"></el-radio>
+          <el-radio label="1">政治</el-radio>
+          <el-radio label="2">军事</el-radio>
+          <el-radio label="3">教育</el-radio>
+          <el-radio label="4">音乐</el-radio>
+          <el-radio label="5">娱乐</el-radio>
+          <el-radio label="6">生活</el-radio>
         </el-radio-group>
       </el-form-item>
       <el-form-item label="内容">
@@ -38,9 +38,10 @@
           show-word-limit
         ></el-input>
       </el-form-item>
+      <div v-show="showerr" class="errmsg" style="text-align:center;">{{errmsg}}</div>
       <el-form-item style="text-align:center;">
         <el-button type="primary" @click="onSubmit" round>发表</el-button>
-        <el-button class="change-button" round>取消</el-button>
+        <el-button class="change-button" @click="goBack" round>取消</el-button>
       </el-form-item>
     </el-form>
   </div>
@@ -55,12 +56,34 @@ export default {
         title: "",
         tag: "",
         text: ""
-      }
+      },
+      showerr:false,
+      errmsg:'',
+      data: {}
     };
   },
   methods: {
     onSubmit() {
-      console.log("submit!");
+      this.data = new FormData();
+      this.data.append("title", this.forum.title);
+      this.data.append("content", this.forum.text);
+      this.data.append("keyword", this.forum.tag);
+      this.$axios.post("http://111.230.183.100/forum/post.php", this.data, {
+        header: {
+          "Content-Type": "application/json"
+        },
+        withCredentials: true
+      }).then((response)=>{
+        if(response.data.errcode == 1){
+          console.log(response.data.data)
+          this.$router.push('/main')
+        }else{
+          this.showerr=true
+          this.errmsg=response.data.errmsg
+        }
+      }).catch((err)=>{
+        console.log(err)
+      })
     },
     goBack() {
       this.$router.go(-1);

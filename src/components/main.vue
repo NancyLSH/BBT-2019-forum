@@ -1,3 +1,4 @@
+//id记得改回来
 <template>
   <div>
     <!-- 页头 -->
@@ -18,7 +19,7 @@
     <!-- 抽屉 -->
     <el-drawer :visible.sync="drawer" size="50%" :direction="direction" :show-close="showClose">
       <div class="drawer-header" @click="home">
-        <el-avatar :size="40" style="margin:5%;"></el-avatar>
+        <el-avatar :size="40" style="margin:5%;" :src="imgurl"></el-avatar>
         <div class="username" id="asidename">{{username}}</div>
       </div>
       <el-divider></el-divider>
@@ -63,16 +64,20 @@
     <!-- 主页 -->
     <el-main style="padding:10px;">
       <!-- 帖子 -->
-      <div class="sigleForum" v-for="item in items" :key="item.id">
-        <div @click="toForum">
+      <div class="sigleForum" v-for="(item,index) in items" :key="index">
+        <div @click="toForum(item.postid)">
           <h3>{{ item.title }}</h3>
-          <div class="text">{{ item.text }}</div>
+          <div class="text">{{ item.content }}</div>
         </div>
-        <i class="el-icon-view">({{ item.scan }})</i>
+        <i class="el-icon-view">({{ item.browse }})</i>
         <div class="buttons">
-          <el-button style="background-color: transparent;border-color:transparent;" plain>
+          <el-button
+            style="background-color: transparent;border-color:transparent;"
+            @click="like(item.postid,index)"
+            plain
+          >
             <i class="el-icon-thumb"></i>
-            ({{ item.thumb }})
+            ({{ item.like }})
           </el-button>
           <el-button style="background-color: transparent;border-color:transparent;" plain>
             <i class="el-icon-chat-dot-square"></i>
@@ -99,6 +104,7 @@
 <script>
 export default {
   name: "mainpage",
+    inject:['reload'],
   data() {
     return {
       header: "发现",
@@ -114,21 +120,12 @@ export default {
       text: "iii",
       items: [
         {
-          title: "titletitletitletitle",
-          text:
-            "texttexttexttexttexttexttexttexttextexttexttexttexttexttexttexttexttexttexttexttexttexttexttext",
-          id: "14",
-          scan: 233,
-          thumb: 876,
-          reply: 128
-        },
-        {
-          title: "title",
-          text: "text",
-          id: "12",
-          scan: 233,
-          thumb: 876,
-          reply: 128
+          postid: "",
+          title: "",
+          content: "",
+          browse: "",
+          like: "",
+          reply: "",
         }
       ]
     };
@@ -146,13 +143,118 @@ export default {
     goBack() {
       this.$router.go(-1);
     },
-    toForum() {
-      console.log("还有bug")
+    like(id, index) {
+      var data = new FormData();
+      data.append("postid", id);
+      data.append("param", 2);
+      this.$axios
+        .post("http://111.230.183.100/forum/add.php", data, {
+          headers: {
+            "Content-Type": "application/json"
+          },
+          withCredentials: true
+        })
+        .then(response => {
+          if (response.data.errcode == 1) {
+            console.log(index);
+            this.items[index].like += 1;
+          }
+          console.log(response);
+        })
+        .catch(err => {
+          console.log(err);
+        });
     },
-    changeMenu(a){
-      var keyword = a;
-      console.log(keyword);
+    toForum(id) {
+      if(id){
+      this.$router.push({
+        name: "forum",
+        query: { postid: id }
+      });
+      }else{
+      console.log("未找到id")
+      }
+      console.log("还有bug");
+    },
+    changeMenu(a) {
+      var key = new FormData();
+      key.append("keyword", a);
+      this.$axios
+        .post("http://111.230.183.100/forum/getPost.php", key, {
+          headers: {
+            "Content-Type": "application/json"
+          },
+          withCredentials: true
+        })
+        .then(response => {
+          if (response.data.data == null) {
+            this.items = [
+              {
+                postid: "",
+                title: "",
+                content: "",
+                browse: "",
+                like: "",
+                reply: "",
+              }
+            ];
+          } else {
+            if (response.data.errcode == 1) {
+              this.items = response.data.data;
+            }
+          }
+          this.drawer = false;
+          console.log(response);
+        })
+        .catch(err => {
+          console.log(err);
+        });
     }
+  },
+  mounted: function() {
+    this.$axios
+      .get("http://111.230.183.100/forum/afterLogin.php", {
+        headers: {
+          "Content-Type": "application/json"
+        },
+        withCredentials: true
+      })
+      .then(response => {
+        if (response.data.errcode == 1) {
+          this.imgurl = response.data.data.avatar;
+          this.username = response.data.data.username;
+        } else {
+          this.imgurl =
+            "https://cube.elemecdn.com/e/fd/0fc7d20532fdaf769a25683617711png.png";
+          this.username = "加载错误";
+        }
+        console.log(response);
+      })
+      .catch(err => {
+        console.log(err);
+      });
+    var key = new FormData();
+    key.append("keyword", 0);
+    this.$axios
+      .post("http://111.230.183.100/forum/getPost.php", key, {
+        headers: {
+          "Content-Type": "application/json"
+        },
+        withCredentials: true
+      })
+      .then(response => {
+        if (response.data == null) {
+          console.log(response.data);
+        } else {
+          if (response.data.errcode == 1) {
+            this.items = response.data.data;
+          }
+        }
+        console.log(response);
+      })
+      .catch(err => {
+        console.log(err);
+      });
   }
 };
 </script>
@@ -210,7 +312,7 @@ export default {
 .sigleForum {
   height: 130px;
   border-bottom: 1px solid #dcdfe6;
-  margin: 2%;
+  margin: 4%;
 }
 h3 {
   margin: 0;

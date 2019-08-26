@@ -1,3 +1,4 @@
+// 还差获取用户信息
 <template>
   <div class="changeInfo">
     <!-- 页头 -->
@@ -22,6 +23,7 @@
           :on-change="onChange"
           :auto-upload="false"
           :file-list="fileList"
+          name="userfile"
         >
           <img v-if="imageUrl" :src="imageUrl" class="avatar" />
           <!-- 这个+号没法居中 -->
@@ -60,7 +62,7 @@
       </el-form-item>
       <el-form-item style="text-align:center;">
         <el-button type="primary" @click="onSubmit" round>保存</el-button>
-        <el-button class="change-button" @click="cancel" round>取消</el-button>
+        <el-button class="change-button" @click="goBack" round>取消</el-button>
       </el-form-item>
     </el-form>
   </div>
@@ -89,17 +91,14 @@ export default {
         city: "",
         area: ""
       },
-      params: {}
+      params: {},
+      changeImg: false
     };
   },
   methods: {
-    goBack() {
-      this.$router.go(-1);
-    },
     onChange(file, filesList) {
-      this.params = new FormData();
-      this.params.append("avatar", file.name);
       this.imageUrl = URL.createObjectURL(file.raw);
+      this.changeImg = true;
     },
     onChangeProvince(data) {
       this.change.province = data.value;
@@ -111,13 +110,18 @@ export default {
       this.change.area = data.value;
     },
     onSubmit() {
+      if (this.changeImg) {
+        var url = document.getElementById("changeInfo");
+        this.params = new FormData(url);
+      } else {
+        this.params = new FormData();
+      }
       var config = {
         headers: {
           "Content-Type": "application/json"
         },
         withCredentials: true
       };
-      console.log(this.params);
       var username = this.change.username;
       var sexStr = this.change.sex;
       if (sexStr == "男") {
@@ -128,12 +132,11 @@ export default {
         var sex = "";
       }
       var d = this.change.birthday;
-      if (d) {
-        var birthday =
-          d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
-        var status = this.change.status;
-      } else {
-        var birthday = "";
+      if(d){
+      var birthday =
+        d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+      }else{
+        birthday = ''
       }
       var status = this.change.status;
       var province = this.change.province;
@@ -157,28 +160,70 @@ export default {
       }
       this.$axios
         .post("http://111.230.183.100/forum/modify.php", this.params, config)
-        .then(function(response) {
-          // 这里是处理正确的回调
-          let result = response.data.errmsg;
-          console.log(result);
+        .then(response => {
+          if (response.data.errcode == 1) {
+            this.$router.push("/main");
+          } else {
+            console.log(response.data.errmsg);
+          }
         })
-        .catch(function(response) {
-          // 这里是处理错误的回调
-          console.log(response);
+        .catch(err => {
+          console.log(err);
         });
     },
-    // 要先写好登录注册页面和路由才有办法调试
+    // 获取用户信息
     getinfo() {
+      var config = {
+        headers: {
+          "Content-Type": "application/json"
+        },
+        withCredentials: true
+      };
       this.$axios
-        .get("http://111.230.183.100/forum/modify.php")
-        .then(function(response) {
+        .get("http://111.230.183.100/forum/information.php", config)
+        .then(response => {
+          if (response.data.errcode == 1) {
+            var data = response.data.data;
+            this.imageUrl = "http://111.230.183.100/forum/" + data.avatar;
+            this.change.username = data.username;
+            if (data.sex == 1) {
+              this.change.sex = "男";
+            }
+            if (data.sex == 2) {
+              this.change.sex = "女";
+            } else {
+              this.sex = '';
+            }
+            // if (data.birthday) {
+            //   var date = data.birthday;
+            //   this.change.birthday = new Date(
+            //     date.substring(0, 4),
+            //     date.substring(5, 7) - 1,
+            //     date.substring(8, 10)
+            //   );
+            // }
+            if (data.status) {
+              this.change.status = data.status;
+            }
+            if (data.province) {
+              this.change.province = data.province;
+            }
+            if (data.city) {
+              this.change.city = data.city;
+            }
+            if (data.area) {
+              this.change.area = data.area;
+            }
+          }
           console.log(response);
         })
-        .catch(function(response) {
+        .catch(response => {
           console.log(response);
         });
     },
-    cancel() {}
+    goBack() {
+      this.$router.go(-1);
+    }
   },
   mounted: function() {
     this.getinfo();

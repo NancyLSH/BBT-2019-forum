@@ -12,7 +12,7 @@
     <el-form ref="form" :model="login" label-width="100%" class="login" v-show="showLogin">
       <el-input v-model="login.username" placeholder="请输入用户名"></el-input>
       <el-input v-model="login.password" placeholder="请输入密码" show-password></el-input>
-      <div v-show="logerrmsg" class="errmsg">{{logerrmsg}}</div>
+      <div v-show="showLog" class="errmsg">{{logerrmsg}}</div>
       <el-button type="primary" @click="log" plain>登录</el-button>
     </el-form>
     <el-form
@@ -40,7 +40,7 @@
       <el-input v-model="register.username" placeholder="请输入用户名"></el-input>
       <el-input v-model="register.pwd" placeholder="请输入密码" show-password></el-input>
       <el-input v-model="register.comfirm" placeholder="请再次输入密码" show-password></el-input>
-      <div v-show="regerrmsg" class="errmsg">{{regerrmsg}}</div>
+      <div v-show="showRe" class="errmsg">{{reerrmsg}}</div>
       <el-button type="primary" @click="toRegister" plain>注册</el-button>
     </el-form>
   </div>
@@ -49,6 +49,7 @@
 
 
 <script>
+import Vue from 'vue'
 import axios from "axios";
 
 axios.defaults.withCredentials = true;
@@ -59,16 +60,17 @@ export default {
     return {
       showLogin: true,
       showRegister: false,
-      logerrmsg: false,
-      regerrmsg: false,
-      logerrmsg: "",
-      regerrmsg: "",
+      showLog:false,
+      logerrmsg:'',
+      showRe:false,
+      reerrmsg:'',
       fileList: [],
       imageUrl: "",
+      data:{},
       params: {},
       login: {
         username: "",
-        password: ""
+        password: "",
       },
       register: {
         username: "",
@@ -82,56 +84,50 @@ export default {
       this.imageUrl = URL.createObjectURL(file.raw);
     },
     log() {
-      if (this.login.username == "" || this.login.password == "") {
-        alert("空");
-      } else {
-        let data = {
-          username: this.login.username,
-          password: this.login.password
-        };
-        this.$axios
-          .post("http://111.230.183.100/forum/login.php", data, {
-            headers: {
-              "Content-Type": "multipart/form-data"
-            },
-            withCredentials: true
-          })
-          .then(function(response) {
-            console.log(response);
-          })
-          .catch(function(error) {
-            console.log("error");
-          });
-      }
+      this.data = new FormData();
+      this.data.append('username',this.login.username)
+      this.data.append('password',this.login.password)
+      this.$axios
+        .post("http://111.230.183.100/forum/login.php", this.data, {
+          headers: {
+            "Content-Type": "application/json"
+          },
+          withCredentials: true
+        })
+        .then((response) => {
+          console.log(response.data)
+          if(response.data.errcode == 1){
+            this.$router.push('/main')
+          }else{
+          this.showLog = true
+          this.logerrmsg = response.data.errmsg
+          }
+        })
+        .catch((error) => {
+          console.log(error);
+        });
     },
     toRegister() {
-      if (
-        this.register.username == "" ||
-        this.register.pwd == "" ||
-        this.register.comfirm == ""
-      ) {
-        alert("kong");
-      } else {
-        var file = document.getElementById("register");
-        this.params = new FormData(file);
-        this.params.append("username", this.register.username);
-        this.params.append("password", this.register.pwd);
-        this.params.append("checkpwd", this.register.comfirm);
-        this.$axios
-          .post("http://111.230.183.100/forum/register.php", this.params, {
-            headers: {
-              "Content-Type": "application/json"
-            },
-            withCredentials: true
-          })
-          .then(function(response) {
-            console.log(response);
-          })
-          .catch(function(err) {
-            console.log(err);
-          });
-      }
-    }
+      var file = document.getElementById("register");
+      this.params = new FormData(file);
+      this.params.append("username", this.register.username);
+      this.params.append("password", this.register.pwd);
+      this.params.append("checkpwd", this.register.comfirm);
+      this.$axios
+        .post("http://111.230.183.100/forum/register.php", this.params, {
+          headers: {
+            "Content-Type": "application/json"
+          },
+          withCredentials: true
+        })
+        .then((response) => {
+          this.showRe=true
+          this.reerrmsg=response.data.errmsg
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    },
   },
   computed: {
     myHeader() {
@@ -195,5 +191,9 @@ export default {
   width: 178px;
   height: 178px;
   display: block;
+}
+.errmsg{
+  margin:3% 0;
+  color:red;
 }
 </style>
